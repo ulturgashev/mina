@@ -266,7 +266,7 @@ func (msg ConfigureReq) handle(app *app, seqno uint64) *capnp.Message {
 	helper.Pubsub = ps
 	app.P2p = helper
 	app.bitswapCtx.engine = helper.Bitswap
-	app.bitswapCtx.storage = helper.BitswapStatusStorage
+	app.bitswapCtx.storage = helper.BitswapStorage
 
 	app.P2p.Logger.Infof("here are the seeds: %v", seeds)
 
