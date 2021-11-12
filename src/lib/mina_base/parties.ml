@@ -274,7 +274,17 @@ let check_depths (t : t) =
     true
   with _ -> false
 
-let check (t : t) = check_depths t
+(* Fee payer MUST use a full commitment, and other parties MAY use a full 
+   commitment IFF they are also the fee payer. *)
+let check_commitment_kinds ({ fee_payer; other_parties; _ } : t) =
+  fee_payer.data.body.use_full_commitment
+  && List.for_all other_parties ~f:(fun party ->
+         if party.data.body.use_full_commitment then
+           Signature_lib.Public_key.Compressed.(
+             party.data.body.pk = fee_payer.data.body.pk)
+         else true)
+
+let check (t : t) : bool = check_depths t && check_commitment_kinds t
 
 let parties (t : t) : Party.t list =
   let p = t.fee_payer in

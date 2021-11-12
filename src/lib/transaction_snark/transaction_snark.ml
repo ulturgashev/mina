@@ -1258,6 +1258,8 @@ module Base = struct
                  _ (* This is for the snapp to use, we don't need it. *)
              ; sequence_events
              ; depth = _ (* This is used to build the 'stack of stacks'. *)
+             ; use_full_commitment =
+                 _ (* This is for the snapp to use, we don't need it. *)
              }
          ; predicate
          } :
@@ -1817,6 +1819,7 @@ module Base = struct
               Parties_logic.Local_state.t
           ; protocol_state_predicate : Snapp_predicate.Protocol_state.Checked.t
           ; transaction_commitment : Transaction_commitment.t
+          ; full_commitment : Transaction_commitment.t
           ; field : Field.t >
       end
 
@@ -1975,14 +1978,20 @@ module Base = struct
             ; party = { party; control; _ }
             ; account
             ; transaction_commitment
+            ; full_commitment
             ; inclusion_proof = _
             } ->
+            let commitment =
+              Inputs.Transaction_commitment.if_
+                party.data.body.use_full_commitment ~then_:full_commitment
+                ~else_:transaction_commitment
+            in
             ( match (auth_type, snapp_statement) with
             | Proof, Some (i, s) ->
                 Pickles.Side_loaded.in_circuit (side_loaded i)
                   (Lazy.force account.data.snapp.verification_key.data) ;
                 Snapp_statement.Checked.Assert.equal
-                  { transaction = transaction_commitment; at_party }
+                  { transaction = commitment; at_party }
                   s
             | (Signature | None_given), None ->
                 ()
@@ -2001,6 +2010,18 @@ module Base = struct
               | `Compute_in_circuit ->
                   Inputs.Transaction_commitment.if_ is_actually_start
                     ~then_:(with_party ()) ~else_:transaction_commitment
+            in
+            let full_commitment =
+              match is_start with
+              | `No ->
+                  full_commitment
+              | `Yes | `Compute_in_circuit ->
+                  transaction_commitment
+            in
+            let commitment =
+              Inputs.Transaction_commitment.if_
+                party.data.body.use_full_commitment ~then_:full_commitment
+                ~else_:transaction_commitment
             in
             let add_check, checks_succeeded = create_checker () in
             let signature_verifies =
@@ -2025,8 +2046,7 @@ module Base = struct
                      in
                      signature_verifies
                        ~shifted:(module S)
-                       ~payload_digest:transaction_commitment signature
-                       party.data.body.pk)
+                       ~payload_digest:commitment signature party.data.body.pk)
             in
             let account', `proof_must_verify proof_must_verify =
               let tag =
@@ -2120,6 +2140,7 @@ module Base = struct
               , V.create (fun () -> !witness.local_state_init.call_stack) )
           ; transaction_commitment =
               statement.source.local_state.transaction_commitment
+          ; full_commitment = statement.source.local_state.full_commitment
           ; token_id = statement.source.local_state.token_id
           ; excess = statement.source.local_state.excess
           ; ledger =
@@ -3856,11 +3877,13 @@ let parties_witnesses ~constraint_constants ~state_body ~fee_excess
       let source_local =
         { (hash_local_state source_local) with
           transaction_commitment = current_commitment
+        ; full_commitment = failwith "FIXME"
         }
       in
       let target_local =
         { (hash_local_state target_local) with
           transaction_commitment = next_commitment
+        ; full_commitment = failwith "FIXME"
         }
       in
       let w : Parties_segment.Witness.t =
@@ -4457,6 +4480,7 @@ let%test_module "transaction_snark" =
                   ; sequence_events = []
                   ; call_data = Field.zero
                   ; depth = 0
+                  ; use_full_commitment = false
                   }
               ; predicate = acct1.account.nonce
               }
@@ -4473,6 +4497,7 @@ let%test_module "transaction_snark" =
                     ; sequence_events = []
                     ; call_data = Field.zero
                     ; depth = 0
+                    ; use_full_commitment = false
                     }
                 ; predicate = Accept
                 }
@@ -4882,6 +4907,7 @@ let%test_module "transaction_snark" =
                             ; sequence_events = []
                             ; call_data = Field.zero
                             ; depth = 0
+                            ; use_full_commitment = true
                             }
                         ; predicate = sender_nonce
                         }
@@ -4899,6 +4925,7 @@ let%test_module "transaction_snark" =
                         ; sequence_events = []
                         ; call_data = Field.zero
                         ; depth = 0
+                        ; use_full_commitment = false
                         }
                     ; predicate = Nonce (Account.Nonce.succ sender_nonce)
                     }
@@ -4913,6 +4940,7 @@ let%test_module "transaction_snark" =
                         ; sequence_events = []
                         ; call_data = Field.zero
                         ; depth = 0
+                        ; use_full_commitment = false
                         }
                     ; predicate = Full Snapp_predicate.Account.accept
                     }
@@ -5194,6 +5222,7 @@ let%test_module "transaction_snark" =
                             ; sequence_events = []
                             ; call_data = Field.zero
                             ; depth = 0
+                            ; use_full_commitment = true
                             }
                         ; predicate = sender_nonce
                         }
@@ -5211,6 +5240,7 @@ let%test_module "transaction_snark" =
                         ; sequence_events = []
                         ; call_data = Field.zero
                         ; depth = 0
+                        ; use_full_commitment = false
                         }
                     ; predicate = Nonce (Account.Nonce.succ sender_nonce)
                     }
@@ -5225,6 +5255,7 @@ let%test_module "transaction_snark" =
                         ; sequence_events = []
                         ; call_data = Field.zero
                         ; depth = 0
+                        ; use_full_commitment = true
                         }
                     ; predicate = Full Snapp_predicate.Account.accept
                     }

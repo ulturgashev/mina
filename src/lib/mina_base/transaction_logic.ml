@@ -1262,6 +1262,8 @@ module Make (L : Ledger_intf) : S with type ledger := L.t = struct
            ; call_data = _ (* This is for the snapp to use, we don't need it. *)
            ; sequence_events
            ; depth = _ (* This is used to build the 'stack of stacks'. *)
+           ; use_full_commitment =
+               _ (* This is for the snapp to use, we don't need it. *)
            }
        ; predicate
        } :
@@ -1622,6 +1624,7 @@ module Make (L : Ledger_intf) : S with type ledger := L.t = struct
           Parties_logic.Local_state.t
       ; protocol_state_predicate : Snapp_predicate.Protocol_state.t
       ; transaction_commitment : unit
+      ; full_commitment : unit
       ; field : Snark_params.Tick.Field.t >
 
     let perform ~constraint_constants ~state_view ledger (type r)
@@ -1669,6 +1672,7 @@ module Make (L : Ledger_intf) : S with type ledger := L.t = struct
           ; party = p
           ; account = a
           ; transaction_commitment = ()
+          ; full_commitment = ()
           ; inclusion_proof = loc
           } -> (
           if (is_start : bool) then
@@ -1725,6 +1729,7 @@ module Make (L : Ledger_intf) : S with type ledger := L.t = struct
       , { parties = []
         ; call_stack = []
         ; transaction_commitment = ()
+        ; full_commitment = ()
         ; token_id = Token_id.invalid
         ; excess = Currency.Amount.zero
         ; ledger
@@ -2531,6 +2536,7 @@ module For_tests = struct
                   ; sequence_events = []
                   ; call_data = Snark_params.Tick.Field.zero
                   ; depth = 0
+                  ; use_full_commitment = true
                   }
               ; predicate = actual_nonce
               }
@@ -2548,8 +2554,9 @@ module For_tests = struct
                     ; sequence_events = []
                     ; call_data = Snark_params.Tick.Field.zero
                     ; depth = 0
+                    ; use_full_commitment = true
                     }
-                ; predicate = Nonce (Account.Nonce.succ actual_nonce)
+                ; predicate = Nonce actual_nonce
                 }
             ; authorization = None_given
             }
@@ -2563,6 +2570,7 @@ module For_tests = struct
                     ; sequence_events = []
                     ; call_data = Snark_params.Tick.Field.zero
                     ; depth = 0
+                    ; use_full_commitment = false
                     }
                 ; predicate = Accept
                 }

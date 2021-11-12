@@ -70,6 +70,7 @@ module Local_state = struct
         { parties : 'parties
         ; call_stack : 'parties
         ; transaction_commitment : 'comm
+        ; full_commitment : 'comm
         ; token_id : 'token_id
         ; excess : 'excess
         ; ledger : 'ledger
@@ -81,7 +82,7 @@ module Local_state = struct
 
   let typ parties token_id excess ledger bool comm =
     Pickles.Impls.Step.Typ.of_hlistable
-      [ parties; parties; comm; token_id; excess; ledger; bool ]
+      [ parties; parties; comm; comm; token_id; excess; ledger; bool ]
       ~var_to_hlist:to_hlist ~var_of_hlist:of_hlist ~value_to_hlist:to_hlist
       ~value_of_hlist:of_hlist
 
@@ -240,6 +241,7 @@ module Eff = struct
         ; party : 'party
         ; account : 'account
         ; transaction_commitment : 'transaction_commitment
+        ; full_commitment : 'transaction_commitment
         ; at_party : 'parties
         ; global_state : 'global_state
         ; inclusion_proof : 'ip
@@ -250,6 +252,7 @@ module Eff = struct
              ; party : 'party
              ; parties : 'parties
              ; transaction_commitment : 'transaction_commitment
+             ; full_commitment : 'transaction_commitment
              ; account : 'account
              ; global_state : 'global_state
              ; .. > )
@@ -268,6 +271,7 @@ module Eff = struct
              ; bool : 'bool
              ; protocol_state_predicate : 'protocol_state_pred
              ; transaction_commitment : 'transaction_commitment
+             ; full_commitment : 'transaction_commitment
              ; field : 'field
              ; .. > )
            t
@@ -372,6 +376,7 @@ module Make (Inputs : Inputs_intf) = struct
       (h :
         (< global_state : global_state
          ; transaction_commitment : Transaction_commitment.t
+         ; full_commitment : Transaction_commitment.t
          ; amount : Amount.t
          ; bool : Bool.t
          ; .. >
@@ -444,9 +449,17 @@ module Make (Inputs : Inputs_intf) = struct
             Transaction_commitment.if_ is_start' ~then_:on_start
               ~else_:local_state.transaction_commitment
       in
+      let full_commitment =
+        match is_start with
+        | `No ->
+            local_state.full_commitment
+        | `Yes _ | `Compute _ ->
+            transaction_commitment
+      in
       let local_state =
         { local_state with
           transaction_commitment
+        ; full_commitment
         ; token_id =
             Token_id.if_ is_start' ~then_:Token_id.default
               ~else_:local_state.token_id
@@ -471,6 +484,7 @@ module Make (Inputs : Inputs_intf) = struct
            ; party
            ; account = a
            ; transaction_commitment = local_state.transaction_commitment
+           ; full_commitment = local_state.full_commitment
            ; inclusion_proof
            })
     in
@@ -540,6 +554,10 @@ module Make (Inputs : Inputs_intf) = struct
           Transaction_commitment.if_ is_last_party
             ~then_:Transaction_commitment.empty
             ~else_:local_state.transaction_commitment
+      ; full_commitment =
+          Transaction_commitment.if_ is_last_party
+            ~then_:Transaction_commitment.empty
+            ~else_:local_state.full_commitment
       }
     in
     let update_local_excess = Bool.(is_start' ||| is_last_party) in
@@ -587,6 +605,7 @@ module Make (Inputs : Inputs_intf) = struct
          The following fields are already reset
          - parties
          - transaction_commitment
+         - full_commitment
          - excess
          so we need to reset
          - token_id = Token_id.default

@@ -12,6 +12,7 @@ let display
     ({ parties
      ; call_stack
      ; transaction_commitment
+     ; full_commitment
      ; token_id
      ; excess
      ; ledger
@@ -25,6 +26,7 @@ let display
   { Parties_logic.Local_state.parties = f parties
   ; call_stack = f call_stack
   ; transaction_commitment = f transaction_commitment
+  ; full_commitment = f full_commitment
   ; token_id = Token_id.to_string token_id
   ; excess = Amount.to_string excess
   ; ledger =
@@ -37,6 +39,7 @@ let dummy : t =
   { parties = Parties.Party_or_stack.With_hashes.empty
   ; call_stack = Parties.Party_or_stack.With_hashes.empty
   ; transaction_commitment = Parties.Transaction_commitment.empty
+  ; full_commitment = Parties.Transaction_commitment.empty
   ; token_id = Token_id.default
   ; excess = Amount.zero
   ; ledger = Frozen_ledger_hash.empty_hash
@@ -57,6 +60,7 @@ let gen : t Quickcheck.Generator.t =
   { Parties_logic.Local_state.parties
   ; call_stack
   ; transaction_commitment
+  ; full_commitment = transaction_commitment
   ; token_id
   ; ledger
   ; excess
@@ -67,6 +71,7 @@ let to_input
     ({ parties
      ; call_stack
      ; transaction_commitment
+     ; full_commitment
      ; token_id
      ; excess
      ; ledger
@@ -78,6 +83,7 @@ let to_input
     [| field parties
      ; field call_stack
      ; field transaction_commitment
+     ; field full_commitment
      ; Token_id.to_input token_id
      ; Amount.to_input excess
      ; Ledger_hash.to_input ledger
@@ -97,6 +103,7 @@ module Checked = struct
     Parties_logic.Local_state.Fields.iter ~parties:(f Field.Assert.equal)
       ~call_stack:(f Field.Assert.equal)
       ~transaction_commitment:(f Field.Assert.equal)
+      ~full_commitment:(f Field.Assert.equal)
       ~token_id:(f !Token_id.Checked.Assert.equal)
       ~excess:(f !Currency.Amount.Checked.assert_equal)
       ~ledger:(f !Ledger_hash.assert_equal)
@@ -107,6 +114,7 @@ module Checked = struct
     let f eq acc f = Core_kernel.Field.(eq (get f t1) (get f t2)) :: acc in
     Parties_logic.Local_state.Fields.fold ~init:[] ~parties:(f Field.equal)
       ~call_stack:(f Field.equal) ~transaction_commitment:(f Field.equal)
+      ~full_commitment:(f Field.equal)
       ~token_id:(f !Token_id.Checked.equal)
       ~excess:(f !Currency.Amount.Checked.equal)
       ~ledger:(f !Ledger_hash.equal_var) ~success:(f Impl.Boolean.equal)
@@ -115,6 +123,7 @@ module Checked = struct
       ({ parties
        ; call_stack
        ; transaction_commitment
+       ; full_commitment
        ; token_id
        ; excess
        ; ledger
@@ -126,6 +135,7 @@ module Checked = struct
       [| field parties
        ; field call_stack
        ; field transaction_commitment
+       ; field full_commitment
        ; run_checked (Token_id.Checked.to_input token_id)
        ; Amount.var_to_input excess
        ; Ledger_hash.var_to_input ledger
@@ -138,6 +148,7 @@ let typ : (Checked.t, t) Impl.Typ.t =
   let open Impl in
   Typ.of_hlistable
     [ Field.typ
+    ; Field.typ
     ; Field.typ
     ; Field.typ
     ; Token_id.typ

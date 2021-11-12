@@ -2380,7 +2380,7 @@ module Types = struct
         obj "PartyBody" ~doc:"Body component of a Snapp Party"
           ~coerce:
             (fun pk update_result token_id delta events sequence_events
-                 call_data depth ->
+                 call_data depth use_full_commitment ->
             try
               let open Result.Let_syntax in
               let%bind pk =
@@ -2408,6 +2408,7 @@ module Types = struct
                 ; sequence_events
                 ; call_data
                 ; depth
+                ; use_full_commitment
                 }
             with exn -> Error (Exn.to_string exn))
           ~fields:
@@ -2448,12 +2449,18 @@ module Types = struct
                   "The number of nested snapp calls in the transaction before \
                    reaching this party."
                 ~typ:(non_null int)
+            ; arg "use_full_commitment"
+                ~doc:
+                  "Use the full or partial commitment when checking the party \
+                   predicate."
+                ~typ:(non_null bool)
             ]
 
       let snapp_fee_payer_party_body =
         obj "FeePayerPartyBody" ~doc:"Body component of a Snapp Fee Payer Party"
           ~coerce:
-            (fun pk update_result fee events sequence_events call_data depth ->
+            (fun pk update_result fee events sequence_events call_data depth
+                 use_full_commitment ->
             try
               let open Result.Let_syntax in
               let%bind pk =
@@ -2481,6 +2488,7 @@ module Types = struct
               ; sequence_events
               ; call_data
               ; depth
+              ; use_full_commitment
               }
             with exn -> Error (Exn.to_string exn))
           ~fields:
@@ -2498,6 +2506,12 @@ module Types = struct
                 ~typ:(non_null string)
             ; arg "depth" ~doc:"An integer in string format"
                 ~typ:(non_null string)
+            ; arg "use_full_commitment"
+                ~doc:
+                  "A boolean value indicating if the full or partial \
+                   commitment to a snapp command should be used when checking \
+                   a party's predicate."
+                ~typ:(non_null bool)
             ]
 
       let snapp_party_predicated_fee_payer :

@@ -364,7 +364,15 @@ module Body = struct
     [%%versioned
     module Stable = struct
       module V1 = struct
-        type ('pk, 'update, 'token_id, 'amount, 'events, 'call_data, 'int) t =
+        type ( 'pk
+             , 'update
+             , 'token_id
+             , 'amount
+             , 'events
+             , 'call_data
+             , 'int
+             , 'bool )
+             t =
           { pk : 'pk
           ; update : 'update
           ; token_id : 'token_id
@@ -373,6 +381,7 @@ module Body = struct
           ; sequence_events : 'events
           ; call_data : 'call_data
           ; depth : 'int
+          ; use_full_commitment : 'bool
           }
         [@@deriving hlist, sexp, equal, yojson, hash, compare]
       end
@@ -392,7 +401,8 @@ module Body = struct
         , (Amount.Stable.V1.t, Sgn.Stable.V1.t) Signed_poly.Stable.V1.t
         , Pickles.Backend.Tick.Field.Stable.V1.t array list
         , Pickles.Backend.Tick.Field.Stable.V1.t (* Opaque to txn logic *)
-        , int )
+        , int
+        , bool )
         Poly.Stable.V1.t
       [@@deriving sexp, equal, yojson, hash, compare]
 
@@ -414,7 +424,8 @@ module Body = struct
           , Fee.Stable.V1.t
           , Pickles.Backend.Tick.Field.Stable.V1.t array list
           , Pickles.Backend.Tick.Field.Stable.V1.t (* Opaque to txn logic *)
-          , int )
+          , int
+          , bool )
           Poly.Stable.V1.t
         [@@deriving sexp, equal, yojson, hash, compare]
 
@@ -431,6 +442,7 @@ module Body = struct
       ; sequence_events = []
       ; call_data = Field.zero
       ; depth = 0
+      ; use_full_commitment = false
       }
   end
 
@@ -448,7 +460,8 @@ module Body = struct
       , Amount.Signed.var
       , Events.var
       , Field.Var.t
-      , int As_prover.Ref.t )
+      , int As_prover.Ref.t
+      , Impl.Boolean.var )
       Poly.t
 
     let to_input
@@ -460,8 +473,14 @@ module Body = struct
          ; sequence_events
          ; call_data
          ; depth = _depth (* ignored *)
+         ; use_full_commitment
          } :
           t) =
+      let use_full_commitment =
+        Impl.Field.if_ use_full_commitment ~then_:Impl.Field.one
+          ~else_:Impl.Field.zero
+        |> Random_oracle_input.field
+      in
       List.reduce_exn ~f:Random_oracle_input.append
         [ Public_key.Compressed.Checked.to_input pk
         ; Update.Checked.to_input update
@@ -470,6 +489,7 @@ module Body = struct
         ; Events.var_to_input events
         ; Events.var_to_input sequence_events
         ; Random_oracle_input.field call_data
+        ; use_full_commitment
         ]
 
     let digest (t : t) =
@@ -488,6 +508,7 @@ module Body = struct
       ; Events.typ
       ; Field.typ
       ; Typ.Internal.ref ()
+      ; Impl.Boolean.typ
       ]
       ~var_to_hlist:to_hlist ~var_of_hlist:of_hlist ~value_to_hlist:to_hlist
       ~value_of_hlist:of_hlist
@@ -501,6 +522,7 @@ module Body = struct
     ; sequence_events = []
     ; call_data = Field.zero
     ; depth = 0
+    ; use_full_commitment = false
     }
 
   let to_input
@@ -512,8 +534,12 @@ module Body = struct
        ; sequence_events
        ; call_data
        ; depth = _ (* ignored *)
+       ; use_full_commitment
        } :
         t) =
+    let use_full_commitment =
+      if use_full_commitment then Field.one else Field.zero
+    in
     List.reduce_exn ~f:Random_oracle_input.append
       [ Public_key.Compressed.to_input pk
       ; Update.to_input update
@@ -522,6 +548,7 @@ module Body = struct
       ; Events.to_input events
       ; Events.to_input sequence_events
       ; Random_oracle_input.field call_data
+      ; Random_oracle_input.field use_full_commitment
       ]
 
   let digest (t : t) =
