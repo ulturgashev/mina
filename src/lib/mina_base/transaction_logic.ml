@@ -1262,8 +1262,7 @@ module Make (L : Ledger_intf) : S with type ledger := L.t = struct
            ; call_data = _ (* This is for the snapp to use, we don't need it. *)
            ; sequence_events
            ; depth = _ (* This is used to build the 'stack of stacks'. *)
-           ; use_full_commitment =
-               _ (* This is for the snapp to use, we don't need it. *)
+           ; use_full_commitment
            }
        ; predicate
        } :
@@ -1431,7 +1430,7 @@ module Make (L : Ledger_intf) : S with type ledger := L.t = struct
       | Accept ->
           a.nonce
       | Full _ | Nonce _ ->
-          Account.Nonce.succ a.nonce
+          if use_full_commitment then a.nonce else Account.Nonce.succ a.nonce
     in
     Ok
       { a with
@@ -1624,7 +1623,7 @@ module Make (L : Ledger_intf) : S with type ledger := L.t = struct
           Parties_logic.Local_state.t
       ; protocol_state_predicate : Snapp_predicate.Protocol_state.t
       ; transaction_commitment : unit
-      ; full_commitment : unit
+      ; full_transaction_commitment : unit
       ; field : Snark_params.Tick.Field.t >
 
     let perform ~constraint_constants ~state_view ledger (type r)
@@ -1632,8 +1631,8 @@ module Make (L : Ledger_intf) : S with type ledger := L.t = struct
       match eff with
       | Get_global_ledger _ ->
           L.create_masked ledger
-      | Transaction_commitment_on_start _ ->
-          ()
+      | Transaction_commitments_on_start _ ->
+          ((), ())
       | Balance a ->
           Balance.to_amount a.balance
       | Get_account (p, l) ->
@@ -1672,7 +1671,7 @@ module Make (L : Ledger_intf) : S with type ledger := L.t = struct
           ; party = p
           ; account = a
           ; transaction_commitment = ()
-          ; full_commitment = ()
+          ; full_transaction_commitment = ()
           ; inclusion_proof = loc
           } -> (
           if (is_start : bool) then
@@ -1729,7 +1728,7 @@ module Make (L : Ledger_intf) : S with type ledger := L.t = struct
       , { parties = []
         ; call_stack = []
         ; transaction_commitment = ()
-        ; full_commitment = ()
+        ; full_transaction_commitment = ()
         ; token_id = Token_id.invalid
         ; excess = Currency.Amount.zero
         ; ledger
