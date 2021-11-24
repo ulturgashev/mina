@@ -2536,7 +2536,7 @@ module For_tests = struct
                   ; sequence_events = []
                   ; call_data = Snark_params.Tick.Field.zero
                   ; depth = 0
-                  ; use_full_commitment = true
+                  ; use_full_commitment = ()
                   }
               ; predicate = actual_nonce
               }

@@ -4500,7 +4500,7 @@ let%test_module "transaction_snark" =
                   ; sequence_events = []
                   ; call_data = Field.zero
                   ; depth = 0
-                  ; use_full_commitment = false
+                  ; use_full_commitment = ()
                   }
               ; predicate = acct1.account.nonce
               }
@@ -4927,7 +4927,7 @@ let%test_module "transaction_snark" =
                             ; sequence_events = []
                             ; call_data = Field.zero
                             ; depth = 0
-                            ; use_full_commitment = true
+                            ; use_full_commitment = ()
                             }
                         ; predicate = sender_nonce
                         }
@@ -5242,7 +5242,7 @@ let%test_module "transaction_snark" =
                             ; sequence_events = []
                             ; call_data = Field.zero
                             ; depth = 0
-                            ; use_full_commitment = true
+                            ; use_full_commitment = ()
                             }
                         ; predicate = sender_nonce
                         }

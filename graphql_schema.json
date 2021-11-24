@@ -3628,23 +3628,6 @@
           "description": "Body component of a Snapp Fee Payer Party",
           "fields": [
             {
-              "name": "use_full_commitment",
-              "description":
-                "A boolean value indicating if the full or partial commitment to a snapp command should be used when checking a party's predicate.",
-              "args": [],
-              "type": {
-                "kind": "NON_NULL",
-                "name": null,
-                "ofType": {
-                  "kind": "SCALAR",
-                  "name": "Boolean",
-                  "ofType": null
-                }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
               "name": "depth",
               "description": "An integer in string format",
               "args": [],
@@ -3786,21 +3769,6 @@
             }
           ],
           "inputFields": [
-            {
-              "name": "use_full_commitment",
-              "description":
-                "A boolean value indicating if the full or partial commitment to a snapp command should be used when checking a party's predicate.",
-              "type": {
-                "kind": "NON_NULL",
-                "name": null,
-                "ofType": {
-                  "kind": "SCALAR",
-                  "name": "Boolean",
-                  "ofType": null
-                }
-              },
-              "defaultValue": null
-            },
             {
               "name": "depth",
               "description": "An integer in string format",

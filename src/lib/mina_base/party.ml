@@ -425,7 +425,7 @@ module Body = struct
           , Pickles.Backend.Tick.Field.Stable.V1.t array list
           , Pickles.Backend.Tick.Field.Stable.V1.t (* Opaque to txn logic *)
           , int
-          , bool )
+          , unit )
           Poly.Stable.V1.t
         [@@deriving sexp, equal, yojson, hash, compare]
 
@@ -442,7 +442,7 @@ module Body = struct
       ; sequence_events = []
       ; call_data = Field.zero
       ; depth = 0
-      ; use_full_commitment = false
+      ; use_full_commitment = ()
       }
   end
 
@@ -450,6 +450,7 @@ module Body = struct
     { t with
       delta = { Signed_poly.sgn = Sgn.Neg; magnitude = Amount.of_fee t.delta }
     ; token_id = Token_id.default
+    ; use_full_commitment = true
     }
 
   module Checked = struct
