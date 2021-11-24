@@ -3799,6 +3799,7 @@ let parties_witnesses ~constraint_constants ~state_body ~fee_excess
     { transaction; at_party }
   in
   let commitment = ref Local_state.dummy.transaction_commitment in
+  let full_commitment = ref Local_state.dummy.full_commitment in
   let remaining_parties =
     let partiess =
       List.map partiess ~f:(fun parties : _ Parties_logic.Start_data.t ->
@@ -3818,6 +3819,7 @@ let parties_witnesses ~constraint_constants ~state_body ~fee_excess
          witnesses
        ->
       let current_commitment = !commitment in
+      let current_full_commitment = !full_commitment in
       let snapp_stmts =
         match spec with
         | Proved ->
@@ -3828,7 +3830,7 @@ let parties_witnesses ~constraint_constants ~state_body ~fee_excess
         | _ ->
             []
       in
-      let start_parties, next_commitment =
+      let start_parties, next_commitment, next_full_commitment =
         let empty_if_last mk =
           match (target_local.parties, target_local.call_stack) with
           | [], [] ->
@@ -3842,25 +3844,43 @@ let parties_witnesses ~constraint_constants ~state_body ~fee_excess
         let mk_next_commitment (parties : Parties.t) =
           empty_if_last (fun () -> Parties.commitment parties)
         in
+        let mk_next_full_commitment (parties : Parties.t) =
+          empty_if_last (fun () ->
+              let fee_payer_hash =
+                Party.Predicated.(digest @@ of_fee_payer parties.fee_payer.data)
+              in
+              mk_next_commitment parties
+              |> Parties.Transaction_commitment.with_fee_payer ~fee_payer_hash)
+        in
         match kind with
         | `Same ->
-            ([], empty_if_last (fun () -> current_commitment))
+            ( []
+            , empty_if_last (fun () -> current_commitment)
+            , empty_if_last (fun () -> current_full_commitment) )
         | `New -> (
             match !remaining_parties with
             | parties :: rest ->
                 let commitment' = mk_next_commitment parties.parties in
+                let full_commitment' =
+                  mk_next_full_commitment parties.parties
+                in
                 remaining_parties := rest ;
                 commitment := commitment' ;
-                ([ parties ], commitment')
+                full_commitment := full_commitment' ;
+                ([ parties ], commitment', full_commitment')
             | _ ->
                 failwith "Not enough remaining parties" )
         | `Two_new -> (
             match !remaining_parties with
             | parties1 :: parties2 :: rest ->
                 let commitment' = mk_next_commitment parties2.parties in
+                let full_commitment' =
+                  mk_next_full_commitment parties2.parties
+                in
                 remaining_parties := rest ;
                 commitment := commitment' ;
-                ([ parties1; parties2 ], commitment')
+                full_commitment := full_commitment' ;
+                ([ parties1; parties2 ], commitment', full_commitment')
             | _ ->
                 failwith "Not enough remaining parties" )
       in
@@ -3877,13 +3897,13 @@ let parties_witnesses ~constraint_constants ~state_body ~fee_excess
       let source_local =
         { (hash_local_state source_local) with
           transaction_commitment = current_commitment
-        ; full_commitment = failwith "FIXME"
+        ; full_commitment = current_full_commitment
         }
       in
       let target_local =
         { (hash_local_state target_local) with
           transaction_commitment = next_commitment
-        ; full_commitment = failwith "FIXME"
+        ; full_commitment = next_full_commitment
         }
       in
       let w : Parties_segment.Witness.t =

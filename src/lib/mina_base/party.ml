@@ -476,11 +476,6 @@ module Body = struct
          ; use_full_commitment
          } :
           t) =
-      let use_full_commitment =
-        Impl.Field.if_ use_full_commitment ~then_:Impl.Field.one
-          ~else_:Impl.Field.zero
-        |> Random_oracle_input.field
-      in
       List.reduce_exn ~f:Random_oracle_input.append
         [ Public_key.Compressed.Checked.to_input pk
         ; Update.Checked.to_input update
@@ -489,7 +484,7 @@ module Body = struct
         ; Events.var_to_input events
         ; Events.var_to_input sequence_events
         ; Random_oracle_input.field call_data
-        ; use_full_commitment
+        ; Random_oracle_input.bitstring [ use_full_commitment ]
         ]
 
     let digest (t : t) =
