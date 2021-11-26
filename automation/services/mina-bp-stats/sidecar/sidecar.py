@@ -14,7 +14,7 @@ MINA_CONFIG_FILE = '/etc/mina-sidecar.json'
 MINA_BLOCK_PRODUCER_URL_ENVAR = 'MINA_BP_UPLOAD_URL'
 MINA_NODE_URL_ENVAR = 'MINA_NODE_URL'
 
-FETCH_INTERVAL = 60 * 3 # Fetch updates every 3 mins
+FETCH_INTERVAL = 60 * 1 # Fetch updates every 1 mins
 ERROR_SLEEP_INTERVAL = 30 # On errors, sleep for 30s before trying again
 FINALIZATION_THRESHOLD = 12 # 12 blocks back is considered "finalized"
 
@@ -158,9 +158,13 @@ if __name__ == '__main__':
 
             send_update(block_data, current_finalized_tip)
 
-            current_finalized_tip = block_data['daemonStatus']['blockchainLength'] - FINALIZATION_THRESHOLD # Go set a new finalized block
+            last_tip = block_data['daemonStatus']['blockchainLength'] - FINALIZATION_THRESHOLD # Go set a new finalized block
+            current_finalized_tip = min(last_tip, current_finalized_tip + 1)
 
-            logging.info("Finished! New tip {}...".format(current_finalized_tip))
+            logging.info("Finished! New tip {}...last tip {}".format(current_finalized_tip, last_tip))
+            
+            if last_tip > current_finalized_tip:
+                continue
 
             time.sleep(FETCH_INTERVAL)
         except Exception as e:
@@ -173,10 +177,10 @@ if __name__ == '__main__':
 
             time.sleep(ERROR_SLEEP_INTERVAL)
 
-            head_block_id = check_mina_node_sync_state_and_fetch_head()
+            # head_block_id = check_mina_node_sync_state_and_fetch_head()
 
-            logging.info("Found new head at {}".format(head_block_id))
+            # logging.info("Found new head at {}".format(head_block_id))
 
-            current_finalized_tip = head_block_id - FINALIZATION_THRESHOLD
+            # current_finalized_tip = head_block_id - FINALIZATION_THRESHOLD
 
             logging.info("Continuing with finalized tip block of {}".format(current_finalized_tip))
